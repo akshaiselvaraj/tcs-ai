@@ -1,17 +1,43 @@
-import { useState } from "react";
-import { TrendingUp, Calendar, Filter, Sparkles, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, Calendar, Filter, Sparkles, RefreshCw, Cpu, Users } from "lucide-react";
 import { apiClient } from "../services/apiClient";
 import type { APIResponse } from "../models/api.types";
 
 export const ForecastView: React.FC = () => {
-  const [forecastDate, setForecastDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [forecastDate, setForecastDate] = useState<string>("2026-10-30");
   const [mealType, setMealType] = useState<string>("Lunch");
+  const [modelName, setModelName] = useState<string>("random_forest");
   const [safetyBuffer, setSafetyBuffer] = useState<number>(8);
-  const [attendance, setAttendance] = useState<number>(450);
+  const [attendance, setAttendance] = useState<number>(2750);
+  const [isAttendanceAuto, setIsAttendanceAuto] = useState<boolean>(true);
 
   const [loading, setLoading] = useState<boolean>(false);
+  const [loadingAttendance, setLoadingAttendance] = useState<boolean>(false);
   const [forecastResult, setForecastResult] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-fetch campus attendance using LightGBM Attendance Forecaster
+  const fetchAttendance = async (dateStr: string) => {
+    try {
+      setLoadingAttendance(true);
+      const res = await apiClient.get<APIResponse<{ predicted_attendance: number; day_of_week: string }>>(
+        `/forecasts/attendance?target_date=${dateStr}`
+      );
+      if (res.data?.data?.predicted_attendance) {
+        setAttendance(res.data.data.predicted_attendance);
+      }
+    } catch {
+      // Fallback silently if API not ready
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isAttendanceAuto && forecastDate) {
+      fetchAttendance(forecastDate);
+    }
+  }, [forecastDate, isAttendanceAuto]);
 
   const handleGenerate = async () => {
     try {
@@ -22,6 +48,7 @@ export const ForecastView: React.FC = () => {
         meal_type: mealType,
         safety_buffer_pct: safetyBuffer,
         expected_attendance: attendance,
+        model_name: modelName,
         persist: true,
       });
       setForecastResult(res.data.data);
@@ -37,6 +64,19 @@ export const ForecastView: React.FC = () => {
       {/* Control bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
+          {/* Model Selector */}
+          <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900 font-medium">
+            <Cpu className="h-4 w-4 text-indigo-600" />
+            <select
+              value={modelName}
+              onChange={(e) => setModelName(e.target.value)}
+              className="bg-transparent focus:outline-hidden font-semibold cursor-pointer"
+            >
+              <option value="random_forest">Random Forest (WAPE: 7.6%)</option>
+              <option value="lightgbm">LightGBM (WAPE: 7.9%)</option>
+            </select>
+          </div>
+
           {/* Date Picker */}
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 bg-slate-50">
             <Calendar className="h-4 w-4 text-slate-500" />
@@ -44,7 +84,7 @@ export const ForecastView: React.FC = () => {
               type="date"
               value={forecastDate}
               onChange={(e) => setForecastDate(e.target.value)}
-              className="bg-transparent focus:outline-hidden font-medium"
+              className="bg-transparent focus:outline-hidden font-medium cursor-pointer"
             />
           </div>
 
@@ -54,7 +94,7 @@ export const ForecastView: React.FC = () => {
             <select
               value={mealType}
               onChange={(e) => setMealType(e.target.value)}
-              className="bg-transparent focus:outline-hidden font-medium"
+              className="bg-transparent focus:outline-hidden font-medium cursor-pointer"
             >
               <option value="Breakfast">Breakfast</option>
               <option value="Lunch">Lunch</option>
@@ -72,20 +112,38 @@ export const ForecastView: React.FC = () => {
               max="25"
               value={safetyBuffer}
               onChange={(e) => setSafetyBuffer(parseInt(e.target.value))}
-              className="w-20 accent-emerald-600"
+              className="w-20 accent-emerald-600 cursor-pointer"
             />
             <span className="font-bold text-emerald-700 font-mono">+{safetyBuffer}%</span>
           </div>
 
-          {/* Expected Attendance */}
+          {/* Campus Attendance with LightGBM Auto-fill */}
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 bg-slate-50">
-            <span className="text-slate-500">Attendance:</span>
+            <Users className="h-4 w-4 text-slate-500" />
+            <span className="text-slate-500">Campus Attendance:</span>
             <input
               type="number"
               value={attendance}
-              onChange={(e) => setAttendance(parseInt(e.target.value) || 0)}
-              className="w-16 bg-transparent font-medium focus:outline-hidden"
+              onChange={(e) => {
+                setAttendance(parseInt(e.target.value) || 0);
+                setIsAttendanceAuto(false);
+              }}
+              className="w-16 bg-transparent font-medium focus:outline-hidden text-slate-900"
             />
+            {loadingAttendance && <RefreshCw className="h-3 w-3 animate-spin text-slate-400" />}
+            {!isAttendanceAuto && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAttendanceAuto(true);
+                  fetchAttendance(forecastDate);
+                }}
+                className="text-[10px] text-indigo-600 underline hover:text-indigo-800 ml-1"
+                title="Reset to LightGBM prediction"
+              >
+                Auto
+              </button>
+            )}
           </div>
         </div>
 
@@ -93,14 +151,14 @@ export const ForecastView: React.FC = () => {
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {loading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          <span>{loading ? "Forecasting with Random Forest..." : "Generate Meal Predictions"}</span>
+          <span>{loading ? `Forecasting with ${modelName === "lightgbm" ? "LightGBM" : "Random Forest"}...` : "Generate Meal Predictions"}</span>
         </button>
       </div>
 
@@ -118,7 +176,9 @@ export const ForecastView: React.FC = () => {
             <h3 className="text-2xl font-bold text-slate-900 mt-1">
               {forecastResult.summary?.total_predicted_demand} portions
             </h3>
-            <p className="text-[11px] text-emerald-600 mt-1 font-medium">Random Forest Inference</p>
+            <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+              {forecastResult.model_name === "lightgbm" ? "LightGBM Gradient Boosting Engine" : "Random Forest Ensemble Engine"}
+            </p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
@@ -157,9 +217,14 @@ export const ForecastView: React.FC = () => {
             </p>
           </div>
           {forecastResult && (
-            <span className="text-xs font-mono font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              Model: {forecastResult.predictions[0]?.model_name}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
+                Model: {forecastResult.model_name || forecastResult.predictions[0]?.model_name}
+              </span>
+              <span className="text-xs font-mono font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                CI: 90% Empirical
+              </span>
+            </div>
           )}
         </div>
 
@@ -171,6 +236,7 @@ export const ForecastView: React.FC = () => {
                 <th className="px-6 py-3">Category</th>
                 <th className="px-6 py-3">Dietary</th>
                 <th className="px-6 py-3">Predicted Demand</th>
+                <th className="px-6 py-3">90% Conf. Bounds</th>
                 <th className="px-6 py-3">Recommended Prep</th>
                 <th className="px-6 py-3">Price / Cost</th>
                 <th className="px-6 py-3">Expected Revenue</th>
@@ -180,11 +246,11 @@ export const ForecastView: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {!forecastResult ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
                     <TrendingUp className="mx-auto h-8 w-8 text-slate-300 mb-2" />
                     <p className="font-medium text-slate-600">No predictions generated yet.</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Select date and meal window above and click "Generate Meal Predictions".
+                      Select model, date and meal window above and click "Generate Meal Predictions".
                     </p>
                   </td>
                 </tr>
@@ -205,6 +271,9 @@ export const ForecastView: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-3.5 font-bold text-slate-900">{p.predicted_demand} portions</td>
+                    <td className="px-6 py-3.5 font-mono text-[11px] text-slate-500">
+                      [{p.lower_bound} – {p.upper_bound}]
+                    </td>
                     <td className="px-6 py-3.5 font-bold text-emerald-600">
                       {p.recommended_preparation} portions
                     </td>

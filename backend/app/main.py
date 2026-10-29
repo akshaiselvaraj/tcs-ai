@@ -22,7 +22,7 @@ from app.api.v1.router import api_router
 async def lifespan(app: FastAPI):
     """Application lifespan: initialize PostgreSQL tables on startup."""
     logger.info("Initializing CanteenIQ application...")
-    logger.info(f"Target Database URL: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
+    logger.info(f"Target Database URL Host: {settings.DATABASE_URL.split('@')[-1] if '@' in settings.DATABASE_URL else settings.DATABASE_URL}")
     
     # Check DB Connection
     db_check = check_db_connection()

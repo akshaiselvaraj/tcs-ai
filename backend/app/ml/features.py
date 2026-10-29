@@ -121,3 +121,8 @@ class FeaturePipeline:
             transformed[b_col] = 1 if row_dict.get(b_col, False) else 0
 
         return pd.DataFrame([transformed])[FEATURE_COLUMNS]
+
+    def transform_df(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Transforms a batch dataframe using previously fitted encoders and medians."""
+        rows = [self.transform_single(r) for r in df.to_dict(orient="records")]
+        return pd.concat(rows, ignore_index=True)[FEATURE_COLUMNS] if rows else pd.DataFrame(columns=FEATURE_COLUMNS)

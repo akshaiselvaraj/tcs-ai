@@ -16,8 +16,41 @@ class ForecastGenerateRequest(BaseModel):
     forecast_date: date
     meal_type: str = Field(default="Lunch")
     safety_buffer_pct: float = Field(default=8.0, ge=0.0, le=50.0)
-    expected_attendance: Optional[int] = Field(default=450, ge=50, le=5000)
+    expected_attendance: Optional[int] = Field(default=None, ge=50, le=5000)
+    model_name: str = Field(default="random_forest", description="ML model to use: random_forest or lightgbm")
     persist: bool = True
+
+
+@router.get("/attendance")
+def predict_attendance(
+    target_date: date = Query(..., description="Date to forecast campus attendance for"),
+    day_type: Optional[str] = Query(None, description="Optional override for day_type: Regular, Exam, Festival, Weekend"),
+    db: Session = Depends(get_db),
+) -> APIResponse[dict]:
+    """Predicts campus meal attendance using the trained LightGBM Attendance Forecaster."""
+    try:
+        from app.ml.attendance_forecaster import attendance_forecaster
+        is_exam = bool(day_type and "exam" in day_type.lower())
+        is_holiday = bool(day_type and ("holiday" in day_type.lower() or "weekend" in day_type.lower()))
+        predicted_attendance = attendance_forecaster.predict_attendance(
+            target_date=target_date,
+            is_exam=is_exam,
+            is_holiday=is_holiday,
+        )
+        return APIResponse(
+            success=True,
+            message="Campus attendance forecasted successfully.",
+            data={
+                "date": target_date.isoformat(),
+                "day_of_week": target_date.strftime("%A"),
+                "predicted_attendance": predicted_attendance,
+            },
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Attendance prediction failed: {str(e)}",
+        )
 
 
 @router.post("/generate")
@@ -33,11 +66,12 @@ def generate_forecast(
             meal_type=request.meal_type,
             safety_buffer_pct=request.safety_buffer_pct,
             expected_attendance=request.expected_attendance,
+            model_name=request.model_name,
             persist=request.persist,
         )
         return APIResponse(
             success=True,
-            message=f"Generated forecasts for {result['total_items']} menu items.",
+            message=f"Generated forecasts for {result['total_items']} menu items using {result.get('model_used', request.model_name)}.",
             data=result,
         )
     except ValueError as ve:

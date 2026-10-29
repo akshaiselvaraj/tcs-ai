@@ -7,6 +7,7 @@ from app.core.logging import logger
 from app.models.menu_item import MenuItem
 from app.models.demand_forecast import DemandForecast
 from app.ml.trainer import model_trainer
+from app.ml.attendance_forecaster import attendance_forecaster
 
 
 class DemandPredictor:
@@ -15,25 +16,50 @@ class DemandPredictor:
         db: Session,
         forecast_date: date,
         meal_type: str = "Lunch",
+        model_name: str = "random_forest",
         safety_buffer_pct: float = 8.0,
-        expected_attendance: Optional[int] = 450,
+        expected_attendance: Optional[int] = None,
         persist: bool = True,
     ) -> Dict[str, Any]:
-        """Generates item-level demand forecasts and recommended preparation portions."""
-        # Ensure model is ready
+        """
+        Generates item-level demand forecasts and recommended preparation portions.
+        Supports LightGBM and Random Forest inference with empirical confidence bounds
+        and automated attendance forecasting.
+        """
+        # 1. Ensure models & pipeline are ready
         if not model_trainer.rf_model or not model_trainer.pipeline:
             loaded = model_trainer.load_artifacts()
             if not loaded:
-                raise ValueError("No trained model found. Please train the model in Phase 2 or upload data first.")
+                raise ValueError("No trained model found. Please train models in Data Management or Model Performance first.")
 
-        # Query active dishes for the meal type
+        # 2. Automated Attendance Forecast if not provided
+        if not expected_attendance:
+            expected_attendance = attendance_forecaster.predict_attendance(
+                target_date=forecast_date,
+                is_exam=False,
+                is_holiday=forecast_date.weekday() >= 5,
+            )
+
+        # 3. Model selection (Random Forest vs. LightGBM)
+        use_lgb = "light" in model_name.lower()
+        if use_lgb and model_trainer.lgb_model:
+            active_model = model_trainer.lgb_model
+            chosen_model_name = "LightGBM Regressor"
+            rmse = model_trainer.latest_metrics.get("lightgbm", {}).get("rmse", 119.67)
+        else:
+            active_model = model_trainer.rf_model
+            chosen_model_name = "Random Forest Regressor"
+            rmse = model_trainer.latest_metrics.get("random_forest", {}).get("rmse", 117.65)
+
+        # Empirical 90% confidence interval margin: 1.645 * standard_error
+        ci_margin = round(1.645 * float(rmse), 1)
+
+        # 4. Query candidate dishes for the meal type
         items = db.query(MenuItem).filter(MenuItem.is_active == True).all()
-        # Filter for relevant meal if applicable
         if meal_type.lower() != "all":
-            items = [i for i in items if i.meal_type.lower() in [meal_type.lower(), "all", "any"]]
-
-        if not items:
-            items = db.query(MenuItem).filter(MenuItem.is_active == True).all()
+            filtered = [i for i in items if i.meal_type.lower() in [meal_type.lower(), "all", "any"]]
+            if filtered:
+                items = filtered
 
         predictions: List[Dict[str, Any]] = []
 
@@ -48,18 +74,22 @@ class DemandPredictor:
                 "calories": item.calories,
                 "protein_g": item.protein_g,
                 "date": forecast_date.isoformat(),
-                "attendance": expected_attendance or 450,
+                "attendance": expected_attendance,
                 "week_no": forecast_date.isocalendar()[1],
                 "is_weekend": forecast_date.weekday() >= 5,
             }
 
             feat_row = model_trainer.pipeline.transform_single(row_dict)
-            raw_pred = float(model_trainer.rf_model.predict(feat_row)[0])
+            raw_pred = float(active_model.predict(feat_row)[0])
             pred_demand = max(5.0, round(raw_pred, 1))
 
             # Recommended Preparation = Demand * (1 + safety_buffer) rounded up
             multiplier = 1.0 + (safety_buffer_pct / 100.0)
             rec_prep = int(math.ceil(pred_demand * multiplier))
+
+            # Empirical 90% confidence bounds
+            lower_b = max(0.0, round(pred_demand - ci_margin, 1))
+            upper_b = round(pred_demand + ci_margin, 1)
 
             # Financial estimates
             expected_revenue = round(pred_demand * item.price, 2)
@@ -79,11 +109,13 @@ class DemandPredictor:
                 "predicted_demand": pred_demand,
                 "recommended_preparation": rec_prep,
                 "safety_buffer_pct": safety_buffer_pct,
+                "lower_bound": lower_b,
+                "upper_bound": upper_b,
                 "expected_revenue": expected_revenue,
                 "prep_cost": prep_cost,
                 "estimated_profit": estimated_profit,
-                "model_name": "RandomForestRegressor",
-                "model_version": "v1.0.0",
+                "model_name": chosen_model_name,
+                "model_version": "v1.2.0",
             }
             predictions.append(pred_data)
 
@@ -95,10 +127,10 @@ class DemandPredictor:
                     meal_type=meal_type,
                     predicted_demand=pred_demand,
                     recommended_preparation=rec_prep,
-                    model_name="RandomForestRegressor",
-                    model_version="v1.0.0",
-                    lower_bound=max(0, pred_demand * 0.9),
-                    upper_bound=pred_demand * 1.15,
+                    model_name=chosen_model_name,
+                    model_version="v1.2.0",
+                    lower_bound=lower_b,
+                    upper_bound=upper_b,
                 )
                 db.add(forecast_obj)
 
@@ -113,6 +145,9 @@ class DemandPredictor:
         return {
             "forecast_date": forecast_date.isoformat(),
             "meal_type": meal_type,
+            "model_name": chosen_model_name,
+            "predicted_attendance": expected_attendance,
+            "confidence_interval_level": "90% Empirical",
             "total_items": len(predictions),
             "summary": {
                 "total_predicted_demand": round(total_demand, 1),

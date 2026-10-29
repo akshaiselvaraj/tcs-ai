@@ -113,3 +113,23 @@ def get_feature_importance() -> APIResponse[list]:
         message="Feature importances retrieved",
         data=model_trainer.latest_metrics["feature_importance"],
     )
+
+
+@router.get("/shap-importance")
+def get_shap_importance(
+    model_name: str = "random_forest",
+) -> APIResponse[list]:
+    """Computes and returns global SHAP TreeExplainer feature attributions."""
+    try:
+        from app.ml.explainer import model_explainer
+        ranking = model_explainer.get_global_shap(model_name=model_name)
+        return APIResponse(
+            success=True,
+            message=f"SHAP feature attributions computed for {model_name}",
+            data=ranking,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute SHAP values: {str(e)}"
+        )
