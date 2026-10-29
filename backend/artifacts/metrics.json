@@ -1,0 +1,68 @@
+{
+  "trained_at": "2026-10-29T14:14:00+00:00",
+  "records_count": 5000,
+  "test_split_size": 750,
+  "random_forest": {
+    "name": "Random Forest Regressor",
+    "mae": 93.94,
+    "rmse": 114.28,
+    "wape": 7.63,
+    "r2_score": 0.904
+  },
+  "lightgbm": {
+    "name": "LightGBM Regressor",
+    "mae": 97.71,
+    "rmse": 119.67,
+    "wape": 7.94,
+    "r2_score": 0.9
+  },
+  "baseline": {
+    "name": "Historical Mean Baseline",
+    "mae": 202.72,
+    "rmse": 271.82,
+    "wape": 16.47,
+    "r2_score": 0.458
+  },
+  "feature_importance": [
+    {
+      "feature": "Attendance",
+      "importance": 0.4125
+    },
+    {
+      "feature": "Meal Type",
+      "importance": 0.2814
+    },
+    {
+      "feature": "Category",
+      "importance": 0.0892
+    },
+    {
+      "feature": "Rating",
+      "importance": 0.0512
+    },
+    {
+      "feature": "Price",
+      "importance": 0.0438
+    },
+    {
+      "feature": "Day Of Week",
+      "importance": 0.0381
+    },
+    {
+      "feature": "Temperature",
+      "importance": 0.0275
+    },
+    {
+      "feature": "Rainfall",
+      "importance": 0.0216
+    },
+    {
+      "feature": "Veg / Non-Veg",
+      "importance": 0.0194
+    },
+    {
+      "feature": "Cost",
+      "importance": 0.0153
+    }
+  ]
+}

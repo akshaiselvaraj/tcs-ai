@@ -165,10 +165,10 @@ export const SettingsView: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
             >
               <Save className={`h-4 w-4 ${saving ? "animate-spin" : ""}`} />
-              <span>{saving ? "Saving Configuration..." : "Save Configuration"}</span>
+              <span>{saving ? "Saving Configuration..." : "Save Settings"}</span>
             </button>
           </div>
         </form>

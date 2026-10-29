@@ -53,7 +53,7 @@ export const ModelPerformanceView: React.FC = () => {
     try {
       setTraining(true);
       setError(null);
-      const res = await apiClient.post<APIResponse<any>>("/models/train");
+      const res = await apiClient.post<APIResponse<any>>("/models/train", {}, { timeout: 120000 });
       setMetrics(res.data.data);
       fetchShap(shapModel);
     } catch (err: any) {
@@ -78,10 +78,10 @@ export const ModelPerformanceView: React.FC = () => {
           type="button"
           onClick={handleTrainModels}
           disabled={training}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
         >
           <Cpu className={`h-4 w-4 ${training ? "animate-spin" : ""}`} />
-          <span>{training ? "Training Ensemble Models..." : "Train / Re-evaluate Models"}</span>
+          <span>{training ? "Training Models..." : "Train / Re-evaluate Models"}</span>
         </button>
       </div>
 
@@ -94,10 +94,10 @@ export const ModelPerformanceView: React.FC = () => {
       {/* Benchmark Matrix Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Random Forest Card */}
-        <div className="rounded-xl border-2 border-emerald-500/30 bg-white p-5 shadow-xs relative overflow-hidden">
+        <div className="rounded-xl border border-blue-200 bg-white p-5 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Primary ML Model</span>
-            <Award className="h-5 w-5 text-emerald-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">Primary ML Model</span>
+            <Award className="h-5 w-5 text-blue-500" />
           </div>
           <h3 className="text-xl font-bold text-slate-900 mt-1">Random Forest</h3>
           <p className="text-xs text-slate-500">100 Estimators &bull; Depth 12</p>
@@ -105,7 +105,7 @@ export const ModelPerformanceView: React.FC = () => {
           <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
             <div className="flex justify-between text-xs">
               <span className="text-slate-500">WAPE (Error %):</span>
-              <span className="font-bold text-emerald-600">
+              <span className="font-bold text-blue-700">
                 {metrics?.random_forest ? `${metrics.random_forest.wape}%` : "--"}
               </span>
             </div>
@@ -210,7 +210,7 @@ export const ModelPerformanceView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <div>
             <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-emerald-600" />
+              <BarChart3 className="h-4 w-4 text-blue-600" />
               <span>Model Explainability & Feature Drivers</span>
             </h3>
             <p className="text-xs text-slate-500">
@@ -223,8 +223,8 @@ export const ModelPerformanceView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setExplainerTab("shap")}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                  explainerTab === "shap" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer ${
+                  explainerTab === "shap" ? "bg-white text-blue-700 shadow-2xs font-semibold" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 SHAP Values
@@ -232,8 +232,8 @@ export const ModelPerformanceView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setExplainerTab("mdi")}
-                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                  explainerTab === "mdi" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600 hover:text-slate-900"
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors cursor-pointer ${
+                  explainerTab === "mdi" ? "bg-white text-blue-700 shadow-2xs font-semibold" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
                 Gini Impurity

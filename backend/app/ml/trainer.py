@@ -155,18 +155,44 @@ class ModelTrainer:
         }
 
         self.latest_metrics = metrics_summary
+
+        # Persist metrics summary to JSON
+        metrics_path = os.path.join(ARTIFACTS_DIR, "metrics.json")
+        try:
+            import json
+            with open(metrics_path, "w") as f:
+                json.dump(metrics_summary, f, indent=2)
+        except Exception as e:
+            logger.warning(f"Could not persist metrics.json: {e}")
+
         logger.info(f"Training completed successfully! RF WAPE: {rf_wape:.2f}%, LGBM WAPE: {lgb_wape:.2f}%")
         return metrics_summary
 
     def load_artifacts(self) -> bool:
-        """Loads persisted models from disk if available."""
+        """Loads persisted models and metrics from disk if available."""
         rf_path = os.path.join(ARTIFACTS_DIR, "random_forest_model.joblib")
+        lgb_path = os.path.join(ARTIFACTS_DIR, "lightgbm_model.joblib")
         pipe_path = os.path.join(ARTIFACTS_DIR, "feature_pipeline.joblib")
+        metrics_path = os.path.join(ARTIFACTS_DIR, "metrics.json")
+
+        loaded = False
         if os.path.exists(rf_path) and os.path.exists(pipe_path):
             self.rf_model = joblib.load(rf_path)
             self.pipeline = joblib.load(pipe_path)
-            return True
-        return False
+            loaded = True
+
+        if os.path.exists(lgb_path):
+            self.lgb_model = joblib.load(lgb_path)
+
+        if os.path.exists(metrics_path):
+            try:
+                import json
+                with open(metrics_path, "r") as f:
+                    self.latest_metrics = json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to read metrics.json: {e}")
+
+        return loaded
 
 
 model_trainer = ModelTrainer()

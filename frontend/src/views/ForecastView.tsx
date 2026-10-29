@@ -65,15 +65,15 @@ export const ForecastView: React.FC = () => {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           {/* Model Selector */}
-          <div className="flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-900 font-medium">
-            <Cpu className="h-4 w-4 text-indigo-600" />
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 font-medium">
+            <Cpu className="h-4 w-4 text-blue-600" />
             <select
               value={modelName}
               onChange={(e) => setModelName(e.target.value)}
               className="bg-transparent focus:outline-hidden font-semibold cursor-pointer"
             >
-              <option value="random_forest">Random Forest (WAPE: 7.6%)</option>
-              <option value="lightgbm">LightGBM (WAPE: 7.9%)</option>
+              <option value="random_forest">Random Forest Model (WAPE: 7.6%)</option>
+              <option value="lightgbm">LightGBM Model (WAPE: 7.9%)</option>
             </select>
           </div>
 
@@ -112,15 +112,15 @@ export const ForecastView: React.FC = () => {
               max="25"
               value={safetyBuffer}
               onChange={(e) => setSafetyBuffer(parseInt(e.target.value))}
-              className="w-20 accent-emerald-600 cursor-pointer"
+              className="w-16 accent-blue-600 cursor-pointer"
             />
-            <span className="font-bold text-emerald-700 font-mono">+{safetyBuffer}%</span>
+            <span className="font-bold text-blue-700 font-mono">+{safetyBuffer}%</span>
           </div>
 
           {/* Campus Attendance with LightGBM Auto-fill */}
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-700 bg-slate-50">
             <Users className="h-4 w-4 text-slate-500" />
-            <span className="text-slate-500">Campus Attendance:</span>
+            <span className="text-slate-500">Attendance:</span>
             <input
               type="number"
               value={attendance}
@@ -138,7 +138,7 @@ export const ForecastView: React.FC = () => {
                   setIsAttendanceAuto(true);
                   fetchAttendance(forecastDate);
                 }}
-                className="text-[10px] text-indigo-600 underline hover:text-indigo-800 ml-1"
+                className="text-[10px] text-blue-600 underline hover:text-blue-800 ml-1 cursor-pointer"
                 title="Reset to LightGBM prediction"
               >
                 Auto
@@ -151,14 +151,14 @@ export const ForecastView: React.FC = () => {
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {loading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
-          <span>{loading ? `Forecasting with ${modelName === "lightgbm" ? "LightGBM" : "Random Forest"}...` : "Generate Meal Predictions"}</span>
+          <span>{loading ? "Generating..." : "Generate Demand Forecast"}</span>
         </button>
       </div>
 
@@ -171,34 +171,34 @@ export const ForecastView: React.FC = () => {
       {/* Summary KPI Cards when results generated */}
       {forecastResult && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-500">Total Predicted Demand</span>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase text-slate-500">Predicted Demand</span>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">
-              {forecastResult.summary?.total_predicted_demand} portions
+              {forecastResult.summary?.total_predicted_demand?.toLocaleString()} portions
             </h3>
-            <p className="text-[11px] text-emerald-600 mt-1 font-medium">
-              {forecastResult.model_name === "lightgbm" ? "LightGBM Gradient Boosting Engine" : "Random Forest Ensemble Engine"}
+            <p className="text-[11px] text-blue-600 mt-1 font-medium">
+              {forecastResult.model_name === "lightgbm" ? "LightGBM Engine" : "Random Forest Engine"}
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-500">Recommended Preparation</span>
-            <h3 className="text-2xl font-bold text-teal-600 mt-1">
-              {forecastResult.summary?.total_recommended_preparation} portions
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase text-slate-500">Recommended Prep</span>
+            <h3 className="text-2xl font-bold text-blue-700 mt-1">
+              {forecastResult.summary?.total_recommended_preparation?.toLocaleString()} portions
             </h3>
             <p className="text-[11px] text-slate-400 mt-1">Includes +{safetyBuffer}% safety headroom</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-500">Expected Gross Revenue</span>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase text-slate-500">Gross Sales Volume</span>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">
               ₹{forecastResult.summary?.expected_gross_revenue?.toLocaleString()}
             </h3>
-            <p className="text-[11px] text-slate-400 mt-1">Predicted portion sales</p>
+            <p className="text-[11px] text-slate-400 mt-1">Expected customer revenue</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-            <span className="text-[11px] font-bold uppercase text-slate-500">Estimated Net Profit</span>
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs">
+            <span className="text-[11px] font-semibold uppercase text-slate-500">Estimated Net Profit</span>
             <h3 className="text-2xl font-bold text-emerald-600 mt-1">
               ₹{forecastResult.summary?.estimated_net_profit?.toLocaleString()}
             </h3>

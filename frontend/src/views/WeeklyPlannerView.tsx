@@ -125,10 +125,10 @@ export const WeeklyPlannerView: React.FC = () => {
             type="button"
             onClick={handleGenerate}
             disabled={generating}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${generating ? "animate-spin" : ""}`} />
-            <span>{generating ? "Solving 21 Meal Plans..." : "Generate 7-Day Plan (PuLP)"}</span>
+            <span>{generating ? "Generating Plan..." : "Generate Weekly Schedule"}</span>
           </button>
         </div>
       </div>

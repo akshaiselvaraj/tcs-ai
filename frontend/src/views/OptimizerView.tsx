@@ -158,17 +158,17 @@ export const OptimizerView: React.FC = () => {
               type="button"
               onClick={handleSolve}
               disabled={solving}
-              className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full rounded-lg bg-blue-600 py-2.5 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {solving ? (
                 <>
                   <RefreshCw className="h-4 w-4 animate-spin" />
-                  <span>Solving PuLP MILP...</span>
+                  <span>Calculating Optimal Batch Sizes...</span>
                 </>
               ) : (
                 <>
                   <Cpu className="h-4 w-4" />
-                  <span>Solve Menu Mix (PuLP CBC)</span>
+                  <span>Calculate Optimal Menu Mix</span>
                 </>
               )}
             </button>
