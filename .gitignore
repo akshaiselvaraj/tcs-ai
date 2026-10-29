@@ -1,0 +1,33 @@
+# Python & Virtual Environments
+backend/venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# Node & Frontend
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+.npm
+*.tsbuildinfo
+
+# Environment & Secrets
+.env
+backend/.env
+frontend/.env
+*.local
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
